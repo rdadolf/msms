@@ -1,0 +1,28 @@
+language: python
+
+# Use containers
+sudo: false
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-precise-3.6
+    packages:
+      - llvm-3.6-dev
+      - llvm-3.6
+      - clang-3.6
+
+before_script:
+  - export CC=clang3.6
+  - export CXX=clang++-3.6
+  - export LLVM_CONFIG=llvm-config-3.6
+
+script:
+  - nosetests
+  - make test
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
