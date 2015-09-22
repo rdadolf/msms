@@ -7,13 +7,13 @@ In Proceedings of the 3rd Workshop on General-Purpose Computation on Graphics Pr
 
 #include "md.h"
 
-void md_kernel(TYPE force_x[nAtoms],
-               TYPE force_y[nAtoms],
-               TYPE force_z[nAtoms],
-               TYPE position_x[nAtoms],
-               TYPE position_y[nAtoms],
-               TYPE position_z[nAtoms],
-               int32_t NL[nAtoms*maxNeighbors])
+void md_kernel(TYPE force_x[n_atoms],
+               TYPE force_y[n_atoms],
+               TYPE force_z[n_atoms],
+               TYPE position_x[n_atoms],
+               TYPE position_y[n_atoms],
+               TYPE position_z[n_atoms],
+               int32_t NL[n_atoms*max_neighbors])
 {
     TYPE delx, dely, delz, r2inv;
     TYPE r6inv, potential, force, j_x, j_y, j_z;
@@ -21,16 +21,16 @@ void md_kernel(TYPE force_x[nAtoms],
 
     int32_t i, j, jidx;
 
-loop_i : for (i = 0; i < nAtoms; i++){
+loop_i : for (i = 0; i < n_atoms; i++){
              i_x = position_x[i];
              i_y = position_y[i];
              i_z = position_z[i];
              fx = 0;
              fy = 0;
              fz = 0;
-loop_j : for( j = 0; j < maxNeighbors; j++){
+loop_j : for( j = 0; j < max_neighbors; j++){
              // Get neighbor
-             jidx = NL[i*maxNeighbors + j];
+             jidx = NL[i*max_neighbors + j];
              // Look up x,y,z positions
              j_x = position_x[jidx];
              j_y = position_y[jidx];

@@ -9,9 +9,8 @@
 
 #include "md.h"
 
-#define domainEdge 20.0
-// LJ1=4e(s^12), LJ2=4e(s^6) -> s=1.049
-#define van_der_Waals_thresh (1.049*1.049)
+#define domain_edge ${domain_edge}
+#define min_distance ${min_distance}
 
 static inline TYPE dist_sq(TYPE x1, TYPE y1, TYPE z1, TYPE x2, TYPE y2, TYPE z2) {
   TYPE dx, dy, dz;
@@ -36,19 +35,19 @@ int main(int argc, char **argv)
 {
   struct bench_args_t data;
   int i, j, reject, fd;
-  neighbor_t neighbor_list[nAtoms];
+  neighbor_t neighbor_list[n_atoms];
   TYPE x, y, z;
-  const TYPE infinity = (domainEdge*domainEdge*3.)*1000;//(max length)^2 * 1000
+  const TYPE infinity = (domain_edge*domain_edge*3.)*1000;//(max length)^2 * 1000
   struct prng_rand_t state;
 
-  // Create random positions in the box [0,domainEdge]^3
+  // Create random positions in the box [0,domain_edge]^3
   prng_srand(1,&state);
   i=0;
-  while( i<nAtoms ) {
+  while( i<n_atoms ) {
     // Generate a new point
-    x = domainEdge*(((TYPE)prng_rand(&state))/((TYPE)PRNG_RAND_MAX));
-    y = domainEdge*(((TYPE)prng_rand(&state))/((TYPE)PRNG_RAND_MAX));
-    z = domainEdge*(((TYPE)prng_rand(&state))/((TYPE)PRNG_RAND_MAX));
+    x = domain_edge*(((TYPE)prng_rand(&state))/((TYPE)PRNG_RAND_MAX));
+    y = domain_edge*(((TYPE)prng_rand(&state))/((TYPE)PRNG_RAND_MAX));
+    z = domain_edge*(((TYPE)prng_rand(&state))/((TYPE)PRNG_RAND_MAX));
     // Assure that it's not directly on top of another atom
     reject = 0;
     for( j=0; j<i; j++ ) {
@@ -67,19 +66,19 @@ int main(int argc, char **argv)
   }
 
   // Compute k-nearest neighbors
-  memset(data.NL, 0, nAtoms*maxNeighbors*sizeof(int32_t));
-  for( i=0; i<nAtoms; i++ ) {
-    for( j=0; j<nAtoms; j++ ) {
+  memset(data.NL, 0, n_atoms*max_neighbors*sizeof(int32_t));
+  for( i=0; i<n_atoms; i++ ) {
+    for( j=0; j<n_atoms; j++ ) {
       neighbor_list[j].index = j;
       if( i==j )
         neighbor_list[j].dist_sq = infinity;
       else
         neighbor_list[j].dist_sq = dist_sq(data.position_x[i], data.position_y[i], data.position_z[i], data.position_x[j], data.position_y[j], data.position_z[j]);
     }
-    qsort(neighbor_list, nAtoms, sizeof(neighbor_t), neighbor_compar);
+    qsort(neighbor_list, n_atoms, sizeof(neighbor_t), neighbor_compar);
     //printf("%d:", i);
-    for( j=0; j<maxNeighbors; j++ ) {
-      data.NL[i*maxNeighbors +j] = neighbor_list[j].index;
+    for( j=0; j<max_neighbors; j++ ) {
+      data.NL[i*max_neighbors +j] = neighbor_list[j].index;
       //printf(" {%d,%lf}", neighbor_list[j].index, neighbor_list[j].dist_sq);
     }
     //printf("\n\n");

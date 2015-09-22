@@ -34,8 +34,7 @@ ms_names = [
   'stencil/stencil3d',
   'viterbi/viterbi',
 ]
-ms_names = ['aes/aes','viterbi/viterbi'] # FIXME: remove; debug
-ms_names = ['aes/aes'] # FIXME: remove; debug
+ms_names = ['md/knn'] # FIXME: remove; debug
 #ms_aliases = {kern: kern+'/'+alg for (kern,alg) in [kern_alg.split('/') for kern_alg in ms_names] if kern==alg}
 scale_values = range(1,10) # FIXME?
 scale_values = [1] # FIXME: remove; debug

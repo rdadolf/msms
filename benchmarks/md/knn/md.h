@@ -12,28 +12,28 @@ In Proceedings of the 3rd Workshop on General-Purpose Computation on Graphics Pr
 #define TYPE double
 
 // Problem Constants
-#define nAtoms        256
-#define maxNeighbors  16
+#define n_atoms        ${n_atoms}
+#define max_neighbors  ${max_neighbors}
 // LJ coefficients
 #define lj1           1.5
 #define lj2           2.0
 
-void md_kernel(TYPE force_x[nAtoms],
-               TYPE force_y[nAtoms],
-               TYPE force_z[nAtoms],
-               TYPE position_x[nAtoms],
-               TYPE position_y[nAtoms],
-               TYPE position_z[nAtoms],
-               int32_t NL[nAtoms*maxNeighbors]);
+void md_kernel(TYPE force_x[n_atoms],
+               TYPE force_y[n_atoms],
+               TYPE force_z[n_atoms],
+               TYPE position_x[n_atoms],
+               TYPE position_y[n_atoms],
+               TYPE position_z[n_atoms],
+               int32_t NL[n_atoms*max_neighbors]);
 ////////////////////////////////////////////////////////////////////////////////
 // Test harness interface code.
 
 struct bench_args_t {
-  TYPE force_x[nAtoms];
-  TYPE force_y[nAtoms];
-  TYPE force_z[nAtoms];
-  TYPE position_x[nAtoms];
-  TYPE position_y[nAtoms];
-  TYPE position_z[nAtoms];
-  int32_t NL[nAtoms*maxNeighbors];
+  TYPE force_x[n_atoms];
+  TYPE force_y[n_atoms];
+  TYPE force_z[n_atoms];
+  TYPE position_x[n_atoms];
+  TYPE position_y[n_atoms];
+  TYPE position_z[n_atoms];
+  int32_t NL[n_atoms*max_neighbors];
 };

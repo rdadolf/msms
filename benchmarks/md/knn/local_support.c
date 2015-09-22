@@ -14,13 +14,13 @@ void run_benchmark( void *vargs ) {
 
 /* Input format:
 %% Section 1
-TYPE[nAtoms]: x positions
+TYPE[n_atoms]: x positions
 %% Section 2
-TYPE[nAtoms]: y positions
+TYPE[n_atoms]: y positions
 %% Section 3
-TYPE[nAtoms]: z positions
+TYPE[n_atoms]: z positions
 %% Section 4
-int32_t[nAtoms*maxNeighbors]: neighbor list
+int32_t[n_atoms*max_neighbors]: neighbor list
 */
 
 void input_to_data(int fd, void *vdata) {
@@ -32,16 +32,16 @@ void input_to_data(int fd, void *vdata) {
   p = readfile(fd);
 
   s = find_section_start(p,1);
-  STAC(parse_,TYPE,_array)(s, data->position_x, nAtoms);
+  STAC(parse_,TYPE,_array)(s, data->position_x, n_atoms);
 
   s = find_section_start(p,2);
-  STAC(parse_,TYPE,_array)(s, data->position_y, nAtoms);
+  STAC(parse_,TYPE,_array)(s, data->position_y, n_atoms);
 
   s = find_section_start(p,3);
-  STAC(parse_,TYPE,_array)(s, data->position_z, nAtoms);
+  STAC(parse_,TYPE,_array)(s, data->position_z, n_atoms);
 
   s = find_section_start(p,4);
-  parse_int32_t_array(s, data->NL, nAtoms*maxNeighbors);
+  parse_int32_t_array(s, data->NL, n_atoms*max_neighbors);
 
 }
 
@@ -49,26 +49,26 @@ void data_to_input(int fd, void *vdata) {
   struct bench_args_t *data = (struct bench_args_t *)vdata;
 
   write_section_header(fd);
-  STAC(write_,TYPE,_array)(fd, data->position_x, nAtoms);
+  STAC(write_,TYPE,_array)(fd, data->position_x, n_atoms);
 
   write_section_header(fd);
-  STAC(write_,TYPE,_array)(fd, data->position_y, nAtoms);
+  STAC(write_,TYPE,_array)(fd, data->position_y, n_atoms);
 
   write_section_header(fd);
-  STAC(write_,TYPE,_array)(fd, data->position_z, nAtoms);
+  STAC(write_,TYPE,_array)(fd, data->position_z, n_atoms);
 
   write_section_header(fd);
-  write_int32_t_array(fd, data->NL, nAtoms*maxNeighbors);
+  write_int32_t_array(fd, data->NL, n_atoms*max_neighbors);
 
 }
 
 /* Output format:
 %% Section 1
-TYPE[nAtoms]: new x force
+TYPE[n_atoms]: new x force
 %% Section 2
-TYPE[nAtoms]: new y force
+TYPE[n_atoms]: new y force
 %% Section 3
-TYPE[nAtoms]: new z force
+TYPE[n_atoms]: new z force
 */
 
 void output_to_data(int fd, void *vdata) {
@@ -80,13 +80,13 @@ void output_to_data(int fd, void *vdata) {
   p = readfile(fd);
 
   s = find_section_start(p,1);
-  STAC(parse_,TYPE,_array)(s, data->force_x, nAtoms);
+  STAC(parse_,TYPE,_array)(s, data->force_x, n_atoms);
 
   s = find_section_start(p,2);
-  STAC(parse_,TYPE,_array)(s, data->force_y, nAtoms);
+  STAC(parse_,TYPE,_array)(s, data->force_y, n_atoms);
 
   s = find_section_start(p,3);
-  STAC(parse_,TYPE,_array)(s, data->force_z, nAtoms);
+  STAC(parse_,TYPE,_array)(s, data->force_z, n_atoms);
 
 }
 
@@ -94,13 +94,13 @@ void data_to_output(int fd, void *vdata) {
   struct bench_args_t *data = (struct bench_args_t *)vdata;
 
   write_section_header(fd);
-  STAC(write_,TYPE,_array)(fd, data->force_x, nAtoms);
+  STAC(write_,TYPE,_array)(fd, data->force_x, n_atoms);
 
   write_section_header(fd);
-  STAC(write_,TYPE,_array)(fd, data->force_y, nAtoms);
+  STAC(write_,TYPE,_array)(fd, data->force_y, n_atoms);
 
   write_section_header(fd);
-  STAC(write_,TYPE,_array)(fd, data->force_z, nAtoms);
+  STAC(write_,TYPE,_array)(fd, data->force_z, n_atoms);
 }
 
 int check_data( void *vdata, void *vref ) {
@@ -110,7 +110,7 @@ int check_data( void *vdata, void *vref ) {
   int i;
   TYPE diff_x, diff_y, diff_z;
 
-  for( i=0; i<nAtoms; i++ ) {
+  for( i=0; i<n_atoms; i++ ) {
     diff_x = data->force_x[i] - ref->force_x[i];
     diff_y = data->force_y[i] - ref->force_y[i];
     diff_z = data->force_z[i] - ref->force_z[i];
