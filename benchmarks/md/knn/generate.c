@@ -33,12 +33,18 @@ int neighbor_compar(const void *v_lhs, const void *v_rhs) {
 
 int main(int argc, char **argv)
 {
+  char *outfile;
   struct bench_args_t data;
   int i, j, reject, fd;
   neighbor_t neighbor_list[n_atoms];
   TYPE x, y, z;
   const TYPE infinity = (domain_edge*domain_edge*3.)*1000;//(max length)^2 * 1000
   struct prng_rand_t state;
+
+  if( argc>1 )
+    outfile = argv[1];
+  else
+    outfile = "input.data";
 
   // Create random positions in the box [0,domain_edge]^3
   prng_srand(1,&state);
@@ -51,7 +57,7 @@ int main(int argc, char **argv)
     // Assure that it's not directly on top of another atom
     reject = 0;
     for( j=0; j<i; j++ ) {
-      if( dist_sq(x,y,z, data.position_x[j], data.position_y[j], data.position_z[j])<van_der_Waals_thresh ) {
+      if( dist_sq(x,y,z, data.position_x[j], data.position_y[j], data.position_z[j])<min_distance ) {
         reject=1;
         break;
       }
@@ -85,7 +91,7 @@ int main(int argc, char **argv)
   }
 
   // Open and write
-  fd = open("input.data", O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+  fd = open(outfile, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
   assert( fd>0 && "Couldn't open input data file" );
   data_to_input(fd, (void *)(&data));
 

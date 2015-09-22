@@ -50,9 +50,6 @@ platform = ARGUMENTS.get('OS',Platform())
 E = Environment(
 )
 
-E.Replace(CC='cc')
-E.Replace(CXX='c++')
-
 # Options which can be overridden
 E.SetDefault(verbose=False)
 
@@ -88,6 +85,8 @@ E.SetDefault(verbose=False)
 cli_vars = Variables(None, ARGUMENTS)
 cli_vars.Add('verbose','Be more thorough about reporting build steps', False)
 cli_vars.Add('LLVM_ROOT', 'Set the path to LLVM', os.environ.get('LLVM_ROOT',''))
+cli_vars.Add('CXX', 'Select the C++ compiler', os.environ.get('CXX','c++'))
+cli_vars.Add('CC', 'Select the C compiler', os.environ.get('CC','cc'))
 #cli_vars.Add('scale', 'Generate and builds benchmarks at scale n', 'all')
 #cli_vars.Add(ListVariable('benchmark', 'Builds the only the specified benchmarks', default=ms_names, names=ms_names, map=ms_aliases))
 #cli_vars.Add(BoolVariable('data', 'Generate input and reference files', 0))
@@ -111,6 +110,8 @@ def Emit(target,source,env):
 Emit_Builder = Builder(action=Emit)
 
 CompileMS_Builder = Builder(action='$CC $CFLAGS $SOURCES -o $TARGET $LDFLAGS')
+RunMS_Builder = Builder(action='$SOURCES $TARGET') # sources=(bin, input)
+RunGenerate_Builder = Builder(action='$SOURCE $TARGET')
 
 def add_shlib_suffix(target,source,env):
   return ([str(t)+'$SHLIBSUFFIX' for t in target], source)
@@ -122,13 +123,17 @@ E_emit = E.Clone()
 E_emit['BUILDERS']['Scale'] = Scale_Builder
 E_emit['BUILDERS']['Emit'] = Emit_Builder
 
+# For compiling MachSuite benchmarks
 E_machsuite = E.Clone()
 E_machsuite['BUILDERS']['CompileMS'] = CompileMS_Builder
 E_machsuite.Append(CFLAGS=['-O2','-Wall','-Wno-unused-label'])
 E_machsuite.Append(CFLAGS=['-I'+pjoin(emit_dir,'common')])
 
+E_machsuite['BUILDERS']['RunGenerate'] = RunGenerate_Builder
+E_machsuite['BUILDERS']['RunMS'] = RunMS_Builder
+
+# For building the instruction-counting and footprint tools.
 E_tool = E.Clone()
-#E_tool.Replace(CXX=pjoin(E_tool['LLVM_ROOT'],'clang++')) # FIXME? I think this should work with any modern compiler
 E_tool.Replace(LLVM_CONFIG=pjoin(E['LLVM_ROOT'],'bin','llvm-config'))
 if E['PLATFORM']=='darwin':
   E_tool.Append(CXXFLAGS=' -fno-common ')
@@ -140,6 +145,7 @@ E_tool.Append(CXXFLAGS=' `$LLVM_CONFIG --cxxflags` ')
 E_tool.Append(LDFLAGS=' `$LLVM_CONFIG --ldflags` ')
 E_tool['BUILDERS']['CompileTool'] = CompileTool_Builder
 
+# For building instrumented MachSuite benchmarks
 E_insn = E_machsuite.Clone()
 E_insn.Replace(CC=pjoin(E['LLVM_ROOT'],'bin','clang'))
 E_insn['BUILDERS']['CompileMS'] = CompileMS_Builder
@@ -147,40 +153,18 @@ E_foot = E_machsuite.Clone()
 E_foot.Replace(CC=pjoin(E['LLVM_ROOT'],'bin','clang'))
 E_foot['BUILDERS']['CompileMS'] = CompileMS_Builder
 
-## MachSuite environment
-#E_ms = E.Clone()
-#E_ms.Append(CCFLAGS=['-Wno-unused-label'])
-#E_ms.Append(CCFLAGS=['-I'+pjoin(bench_dir, 'common')])
-#
-## Tool-build environment
-#E_tool = E.Clone()
-#E_tool.Replace(CXX='clang++')
-#E_tool.Append(CXXFLAGS='`llvn-config --cxxflags`')
-#E_tool.Append(LIBLINKPREFIX='`llvm-config --ldconfig`')
-#
-## Tool-run envionrment
-##  conf = Configure(tool_env)
-##  # check for llvm>3.7
-##  tool_env = conf.Finish()
-#E_insn = E.Clone()
-#E_insn.Append(CFLAGS='-Xclang -load -Xclang insn_tool.so') # FIXME
-#E_insn.Replace(EXTENSION='-insn')
-#E_foot = E.Clone()
-#E_foot.Append(CFLAGS='-Xclang -load -Xclang insn_tool.so') # FIXME
-#E_foot.Replace(EXTENSION='-insn')
-
 ### Targets ####################################################################
 E.Alias('baseline')
 E.Alias('data')
 
-E.Alias('check')
-E.Depends('check',['baseline','data'])
+E.Alias('run')
+E.Depends('run',['baseline','data'])
 E.Alias('metrics')
 E.Depends('metrics',['baseline','data'])
 E.Alias('report')
 E.Depends('report',['metrics'])
 E.Alias('all')
-E.Depends('all',['report','metrics','check','data','baseline'])
+E.Depends('all',['report','metrics','run','data','baseline'])
 
 Default('baseline')
 
@@ -202,11 +186,23 @@ for scale in scale_values:
                  [trans_dict,
                   pjoin(template_dir,'common',f)] )
 
-
-  ##### Build native MachSuite binaries
-  E_machsuite.Append(CFLAGS=['-I'+pjoin(emit_dir,k,a)])
-  #E_machsuite['BUILDERS']['CompileMS'] = Builder(action='$CC $CXXFLAGS $SOURCE -o $TARGET $LDFLAGS')
+  ##### Generate Input Data
   for (k,a) in kern_alg_list:
+    gen = E_machsuite.CompileMS(
+      [pjoin(emit_dir,k,a,'generate')],
+      [pjoin(emit_dir,k,a,'generate.c'),
+       pjoin(emit_dir,k,a,k+'.c'),
+       pjoin(emit_dir,k,a,'local_support.c'),
+       pjoin(emit_dir,'common','support.c')] )
+    E.Depends(gen, pjoin(emit_dir,k,a,k+'.h'))
+    E.Depends(gen, pjoin(emit_dir,'common','support.h'))
+    input = E_machsuite.RunGenerate(pjoin(emit_dir,k,a,'input.data'), gen)
+    E.Depends('data', input)
+
+  ##### Build and run native MachSuite binaries
+  E_machsuite.Append(CFLAGS=['-I'+pjoin(emit_dir,k,a)])
+  for (k,a) in kern_alg_list:
+    # Build
     bin = E_machsuite.CompileMS(
       [pjoin(emit_dir,k,a,k)],
       [pjoin(emit_dir,k,a,k+'.c'),
@@ -216,6 +212,11 @@ for scale in scale_values:
     E.Depends(bin, pjoin(emit_dir,k,a,k+'.h'))
     E.Depends(bin, pjoin(emit_dir,'common','support.h'))
     E.Depends('baseline',bin)
+    # Run
+    out = E_machsuite.RunMS(
+      [pjoin(emit_dir,k,a,'output.data')],
+      [bin, pjoin(emit_dir,k,a,'input.data')] )
+    E.Depends('run', out)
 
   ##### Build tools
   insn_lib = E_tool.CompileTool(
@@ -247,30 +248,9 @@ for scale in scale_values:
     E.Depends('metrics',insn_bin)
     E.Depends('metrics',foot_bin)
 
+  ##### Run instrumented MachSuite binaries and collect data
+  # FIXME
 if 0:
-  if config['metric_flag']:
-    for (k,a) in kern_alg_list:
-      Build( pjoin(emit_dir,k,a), env=insn_env )
-      Build( pjoin(emit_dir,k,a), env=foot_env )
-
-if 0:
-  ##### Prepare Data
-  if config['data_flag']:
-    for (k,a) in kern_alg_list:
-      Build( pjoin(emit_dir,k,a,'generate'), env=E )
-    for (k,a) in kern_alg_list:
-      Run( pjoin(emit_dir,k,a,'generate'), env=E )
-  else:
-    for (k,a) in kern_alg_list:
-      Copy( pjoin(template_dir,k,a,'input.data'),
-            pjoin(emit_dir,k,a,'input.data') )
-      Copy( pjoin(template_dir,k,a,'check.data'),
-            pjoin(emit_dir,k,a,'check.data') )
-
-  ##### Run
-  if config['check_flag']:
-    for (k,a) in kern_alg_list:
-      Run( pjoin(emit_dir,k,a,k), env=E )
   if config['metric_flag']:
     for (k,a) in kern_alg_list:
       Run( pjoin(emit_dir,k,a,k), env=insn_env )
@@ -280,7 +260,8 @@ if 0:
       Copy( pjoin(emit_dir,k,a,'foot.data'),
             pjoin(data_dir,'foot_'+k+'/'+a+'.data') )
 
-#  ##### Report
+  ##### Generate Reports
+  # FIXME
 #  if metric_flag:
 #    [ Collect data from all K/A, all scales ]
 #    [ Run plotting scripts ]
