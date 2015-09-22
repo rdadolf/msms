@@ -1,0 +1,4 @@
+*.pyc
+*.dSYM
+.*.swp
+.sconsign.dblite

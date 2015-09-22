@@ -20,7 +20,8 @@ before_script:
 
 script:
   - nosetests
-  - make test
+  - ./scons baseline
+  - ./scons metrics
 
 notifications:
   email:
