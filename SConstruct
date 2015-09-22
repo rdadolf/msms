@@ -88,7 +88,7 @@ E.SetDefault(verbose=False)
 #
 cli_vars = Variables(None, ARGUMENTS)
 cli_vars.Add('verbose','Be more thorough about reporting build steps', False)
-cli_vars.Add('LLVM_ROOT', 'Set the path to LLVM', '')
+cli_vars.Add('LLVM_ROOT', 'Set the path to LLVM', os.environ.get('LLVM_ROOT',''))
 #cli_vars.Add('scale', 'Generate and builds benchmarks at scale n', 'all')
 #cli_vars.Add(ListVariable('benchmark', 'Builds the only the specified benchmarks', default=ms_names, names=ms_names, map=ms_aliases))
 #cli_vars.Add(BoolVariable('data', 'Generate input and reference files', 0))
@@ -180,6 +180,8 @@ E.Alias('metrics')
 E.Depends('metrics',['baseline','data'])
 E.Alias('report')
 E.Depends('report',['metrics'])
+E.Alias('all')
+E.Depends('all',['report','metrics','check','data','baseline'])
 
 Default('baseline')
 
