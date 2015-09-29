@@ -6,7 +6,7 @@ int INPUT_SIZE = sizeof(struct bench_args_t);
 
 void run_benchmark( void *vargs ) {
   struct bench_args_t *args = (struct bench_args_t *)vargs;
-  bfs(args->nodes, args->edges, args->starting_node, args->level, args->level_counts);
+  bfs(args->nodes, args->edges, args->queue, args->starting_node, args->level, args->level_counts);
 }
 
 /* Input format:
@@ -74,7 +74,7 @@ void data_to_input(int fd, void *vdata) {
 
 /* Output format:
 %% Section 1
-uint64_t[N_LEVELS]: horizon counts
+uint64_t[MAX_LEVEL]: horizon counts
 */
 
 void output_to_data(int fd, void *vdata) {
@@ -86,14 +86,14 @@ void output_to_data(int fd, void *vdata) {
   p = readfile(fd);
   // Section 1: horizon counts
   s = find_section_start(p,1);
-  parse_uint64_t_array(s, data->level_counts, N_LEVELS);
+  parse_uint64_t_array(s, data->level_counts, MAX_LEVEL);
 }
 
 void data_to_output(int fd, void *vdata) {
   struct bench_args_t *data = (struct bench_args_t *)vdata;
   // Section 1
   write_section_header(fd);
-  write_uint64_t_array(fd, data->level_counts, N_LEVELS);
+  write_uint64_t_array(fd, data->level_counts, MAX_LEVEL);
 }
 
 int check_data( void *vdata, void *vref ) {
@@ -103,7 +103,7 @@ int check_data( void *vdata, void *vref ) {
   int i;
 
   // Check that the horizons have the same number of nodes
-  for(i=0; i<N_LEVELS; i++) {
+  for(i=0; i<MAX_LEVEL; i++) {
     has_errors |= (data->level_counts[i]!=ref->level_counts[i]);
   }
 

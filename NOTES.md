@@ -5,4 +5,4 @@ Everything that is in the `emit/` directory should follow the same rules as the 
 
 At some point, we're going to need scalable (auto-generated) HLS files for everything. read: Brandon.
 
-Each scale should have its own emit directory. (`emit/scaleN/...`)
+Scale function defaults should basically match the original MachSuite.

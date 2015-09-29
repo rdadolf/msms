@@ -34,10 +34,8 @@ ms_names = [
   'stencil/stencil3d',
   'viterbi/viterbi',
 ]
-ms_names = ['md/knn'] # FIXME: remove; debug
+ms_names = ['bfs/queue'] # FIXME: remove; debug
 #ms_aliases = {kern: kern+'/'+alg for (kern,alg) in [kern_alg.split('/') for kern_alg in ms_names] if kern==alg}
-scale_values = range(1,10) # FIXME?
-scale_values = [1] # FIXME: remove; debug
 
 ### Utility ####################################################################
 def pjoin(*args):
@@ -87,7 +85,7 @@ cli_vars.Add('verbose','Be more thorough about reporting build steps', False)
 cli_vars.Add('LLVM_ROOT', 'Set the path to LLVM', os.environ.get('LLVM_ROOT',''))
 cli_vars.Add('CXX', 'Select the C++ compiler', os.environ.get('CXX','c++'))
 cli_vars.Add('CC', 'Select the C compiler', os.environ.get('CC','cc'))
-#cli_vars.Add('scale', 'Generate and builds benchmarks at scale n', 'all')
+cli_vars.Add('scale', 'JSON file containing scaling parameters', None)
 #cli_vars.Add(ListVariable('benchmark', 'Builds the only the specified benchmarks', default=ms_names, names=ms_names, map=ms_aliases))
 #cli_vars.Add(BoolVariable('data', 'Generate input and reference files', 0))
 #cli_vars.Add(BoolVariable('metrics', 'Build and run performance metrics', 0))
@@ -97,8 +95,8 @@ cli_vars.Update(E)
 ### Builders ###################################################################
 def Scale(target,source,env):
   (trans_dict,) = map(str,target)
-  (scalefile,) = map(str,source)
-  tools.generate.scale_files(scalefile, env['SCALE'], trans_dict)
+  (scalefile, paramfile) = map(str,source)
+  tools.generate.scale_files(scalefile, paramfile, trans_dict)
   return 0
 Scale_Builder = Builder(action=Scale)
 
@@ -171,85 +169,87 @@ Default('baseline')
 ################################################################################
 kern_alg_list = [ka.split('/') for ka in ms_names]
 
-for scale in scale_values:
-  ##### Generate scaled MachSuite
-  E_emit.Replace(SCALE=scale)
-  for (k,a) in kern_alg_list:
-    trans_dict = E_emit.Scale( [pjoin(emit_dir,k,a,'trans.dict')],
-                               [pjoin(template_dir,k,a,'scale.py')] )
-    for f in [k+'.c', k+'.h', 'local_support.c', 'generate.c']:
-      E_emit.Emit( [pjoin(emit_dir,k,a,f)],
-                   [trans_dict,
-                    pjoin(template_dir,k,a,f)] )
-  for f in ['harness.c','support.c','support.h']:
-    E_emit.Emit( [pjoin(emit_dir,'common',f)],
+##### FIXME: something about finding/generating scale parameter file?
+
+##### Generate scaled MachSuite
+for (k,a) in kern_alg_list:
+  trans_dict = E_emit.Scale( [pjoin(emit_dir,k,a,'trans.dict')],
+                             [pjoin(template_dir,k,a,'scale.py'),
+                              E_emit['scale']] )
+  for f in [k+'.c', k+'.h', 'local_support.c', 'generate.c','hls.tcl']:
+    E_emit.Emit( [pjoin(emit_dir,k,a,f)],
                  [trans_dict,
-                  pjoin(template_dir,'common',f)] )
+                  pjoin(template_dir,k,a,f)] )
+    E.Depends('baseline', pjoin(emit_dir,k,a,'hls.tcl'))
+for f in ['harness.c','support.c','support.h']:
+  E_emit.Emit( [pjoin(emit_dir,'common',f)],
+               [trans_dict,
+                pjoin(template_dir,'common',f)] )
 
-  ##### Generate Input Data
-  for (k,a) in kern_alg_list:
-    gen = E_machsuite.CompileMS(
-      [pjoin(emit_dir,k,a,'generate')],
-      [pjoin(emit_dir,k,a,'generate.c'),
-       pjoin(emit_dir,k,a,k+'.c'),
-       pjoin(emit_dir,k,a,'local_support.c'),
-       pjoin(emit_dir,'common','support.c')] )
-    E.Depends(gen, pjoin(emit_dir,k,a,k+'.h'))
-    E.Depends(gen, pjoin(emit_dir,'common','support.h'))
-    input = E_machsuite.RunGenerate(pjoin(emit_dir,k,a,'input.data'), gen)
-    E.Depends('data', input)
+##### Generate Input Data
+for (k,a) in kern_alg_list:
+  gen = E_machsuite.CompileMS(
+    [pjoin(emit_dir,k,a,'generate')],
+    [pjoin(emit_dir,k,a,'generate.c'),
+     pjoin(emit_dir,k,a,k+'.c'),
+     pjoin(emit_dir,k,a,'local_support.c'),
+     pjoin(emit_dir,'common','support.c')] )
+  E.Depends(gen, pjoin(emit_dir,k,a,k+'.h'))
+  E.Depends(gen, pjoin(emit_dir,'common','support.h'))
+  input = E_machsuite.RunGenerate(pjoin(emit_dir,k,a,'input.data'), gen)
+  E.Depends('data', input)
 
-  ##### Build and run native MachSuite binaries
-  E_machsuite.Append(CFLAGS=['-I'+pjoin(emit_dir,k,a)])
-  for (k,a) in kern_alg_list:
-    # Build
-    bin = E_machsuite.CompileMS(
-      [pjoin(emit_dir,k,a,k)],
-      [pjoin(emit_dir,k,a,k+'.c'),
-       pjoin(emit_dir,k,a,'local_support.c'),
-       pjoin(emit_dir,'common','support.c'),
-       pjoin(emit_dir,'common','harness.c')] )
-    E.Depends(bin, pjoin(emit_dir,k,a,k+'.h'))
-    E.Depends(bin, pjoin(emit_dir,'common','support.h'))
-    E.Depends('baseline',bin)
-    # Run
-    out = E_machsuite.RunMS(
-      [pjoin(emit_dir,k,a,'output.data')],
-      [bin, pjoin(emit_dir,k,a,'input.data')] )
-    E.Depends('run', out)
+##### Build and run native MachSuite binaries
+E_machsuite.Append(CFLAGS=['-I'+pjoin(emit_dir,k,a)])
+for (k,a) in kern_alg_list:
+  # Build
+  bin = E_machsuite.CompileMS(
+    [pjoin(emit_dir,k,a,k)],
+    [pjoin(emit_dir,k,a,k+'.c'),
+     pjoin(emit_dir,k,a,'local_support.c'),
+     pjoin(emit_dir,'common','support.c'),
+     pjoin(emit_dir,'common','harness.c')] )
+  E.Depends(bin, pjoin(emit_dir,k,a,k+'.h'))
+  E.Depends(bin, pjoin(emit_dir,'common','support.h'))
+  E.Depends('baseline',bin)
+  # Run
+  out = E_machsuite.RunMS(
+    [pjoin(emit_dir,k,a,'output.data')],
+    [bin, pjoin(emit_dir,k,a,'input.data')] )
+  E.Depends('run', out)
 
-  ##### Build tools
-  insn_lib = E_tool.CompileTool(
-    [pjoin(tools_dir,'instrumentation','insn_tool')],
-    [pjoin(tools_dir,'instrumentation','insn_tool.cpp')] )
-  foot_lib = E_tool.CompileTool(
-    [pjoin(tools_dir,'instrumentation','foot_tool')],
-    [pjoin(tools_dir,'instrumentation','foot_tool.cpp')] )
+##### Build tools
+insn_lib = E_tool.CompileTool(
+  [pjoin(tools_dir,'instrumentation','insn_tool')],
+  [pjoin(tools_dir,'instrumentation','insn_tool.cpp')] )
+foot_lib = E_tool.CompileTool(
+  [pjoin(tools_dir,'instrumentation','foot_tool')],
+  [pjoin(tools_dir,'instrumentation','foot_tool.cpp')] )
 
-  ##### Build instrumented MachSuite binaries
-  E_insn.Append(CFLAGS=' -Xclang -load -Xclang '+str(insn_lib[0])+' ')
-  E_foot.Append(CFLAGS=' -Xclang -load -Xclang '+str(foot_lib[0])+' ')
-  for (k,a) in kern_alg_list:
-    insn_bin = E_insn.CompileMS(
-      [pjoin(emit_dir,k,a,k+'-insn')],
-      [pjoin(emit_dir,k,a,k+'.c'),
-       pjoin(emit_dir,k,a,'local_support.c'),
-       pjoin(emit_dir,'common','support.c'),
-       pjoin(emit_dir,'common','harness.c')] )
-    E.Depends(insn_bin, insn_lib)
-    foot_bin = E_foot.CompileMS(
-      [pjoin(emit_dir,k,a,k+'-foot')],
-      [pjoin(emit_dir,k,a,k+'.c'),
-       pjoin(emit_dir,k,a,'local_support.c'),
-       pjoin(emit_dir,'common','support.c'),
-       pjoin(emit_dir,'common','harness.c')] )
-    E.Depends(foot_bin, foot_lib)
+##### Build instrumented MachSuite binaries
+E_insn.Append(CFLAGS=' -Xclang -load -Xclang '+str(insn_lib[0])+' ')
+E_foot.Append(CFLAGS=' -Xclang -load -Xclang '+str(foot_lib[0])+' ')
+for (k,a) in kern_alg_list:
+  insn_bin = E_insn.CompileMS(
+    [pjoin(emit_dir,k,a,k+'-insn')],
+    [pjoin(emit_dir,k,a,k+'.c'),
+     pjoin(emit_dir,k,a,'local_support.c'),
+     pjoin(emit_dir,'common','support.c'),
+     pjoin(emit_dir,'common','harness.c')] )
+  E.Depends(insn_bin, insn_lib)
+  foot_bin = E_foot.CompileMS(
+    [pjoin(emit_dir,k,a,k+'-foot')],
+    [pjoin(emit_dir,k,a,k+'.c'),
+     pjoin(emit_dir,k,a,'local_support.c'),
+     pjoin(emit_dir,'common','support.c'),
+     pjoin(emit_dir,'common','harness.c')] )
+  E.Depends(foot_bin, foot_lib)
 
-    E.Depends('metrics',insn_bin)
-    E.Depends('metrics',foot_bin)
+  E.Depends('metrics',insn_bin)
+  E.Depends('metrics',foot_bin)
 
-  ##### Run instrumented MachSuite binaries and collect data
-  # FIXME
+##### Run instrumented MachSuite binaries and collect data
+# FIXME
 if 0:
   if config['metric_flag']:
     for (k,a) in kern_alg_list:
@@ -260,8 +260,8 @@ if 0:
       Copy( pjoin(emit_dir,k,a,'foot.data'),
             pjoin(data_dir,'foot_'+k+'/'+a+'.data') )
 
-  ##### Generate Reports
-  # FIXME
+##### Generate Reports
+# FIXME
 #  if metric_flag:
 #    [ Collect data from all K/A, all scales ]
 #    [ Run plotting scripts ]

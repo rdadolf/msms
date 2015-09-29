@@ -10,20 +10,21 @@ Hong, Oguntebi, Olukotun. "Efficient Parallel Graph Exploration on Multi-Core CP
 #define Q_POP() { q_out = (q_out+1)%N_NODES; }
 #define Q_EMPTY() (q_in>q_out ? q_in==q_out+1 : (q_in==0)&&(q_out==N_NODES-1))
 
-void bfs(node_t nodes[N_NODES], edge_t edges[N_EDGES],
-            node_index_t starting_node, level_t level[N_NODES],
-            edge_index_t level_counts[N_LEVELS])
+void bfs(node_t *nodes, edge_t *edges,
+         node_index_t *queue, node_index_t starting_node,
+         level_t *level, edge_index_t *level_counts)
 {
-  node_index_t queue[N_NODES];
   node_index_t q_in, q_out;
-  node_index_t dummy;
+  level_t i;
   node_index_t n;
   edge_index_t e;
 
-  /*init_levels: for( n=0; n<N_NODES; n++ )*/
-  /*level[n] = MAX_LEVEL;*/
-  /*init_horizons: for( i=0; i<N_LEVELS; i++ )*/
-  /*level_counts[i] = 0;*/
+  /*
+  init_levels: for( n=0; n<N_NODES; n++ )
+  level[n] = MAX_LEVEL;
+  init_horizons: for( i=0; i<MAX_LEVEL; i++ )
+  level_counts[i] = 0;
+  */
 
   q_in = 1;
   q_out = 0;
@@ -31,7 +32,7 @@ void bfs(node_t nodes[N_NODES], edge_t edges[N_EDGES],
   level_counts[0] = 1;
   Q_PUSH(starting_node);
 
-  loop_queue: for( dummy=0; dummy<N_NODES; dummy++ ) { // Typically while(not_empty(queue)){
+  loop_queue: for( i=0; i<MAX_LEVEL; i++ ) { // Typically while(not_empty(queue)){
     if( Q_EMPTY() )
       break;
     n = Q_PEEK();
@@ -42,7 +43,7 @@ void bfs(node_t nodes[N_NODES], edge_t edges[N_EDGES],
       node_index_t tmp_dst = edges[e].dst;
       level_t tmp_level = level[tmp_dst];
 
-      if( tmp_level ==MAX_LEVEL ) { // Unmarked
+      if( tmp_level==MAX_LEVEL ) { // Unmarked
         level_t tmp_level = level[n]+1;
         level[tmp_dst] = tmp_level;
         ++level_counts[tmp_level];
@@ -53,7 +54,7 @@ void bfs(node_t nodes[N_NODES], edge_t edges[N_EDGES],
 
   /*
   printf("Horizons:");
-  for( i=0; i<N_LEVELS; i++ )
+  for( i=0; i<MAX_LEVEL; i++ )
     printf(" %d", level_counts[i]);
   printf("\n");
   */

@@ -9,16 +9,13 @@ Hong, Oguntebi, Olukotun. "Efficient Parallel Graph Exploration on Multi-Core CP
 #include <string.h>
 #include "support.h"
 
-// Terminology (but not values) from graph500 spec
-//   graph density = 2^-(2*SCALE - EDGE_FACTOR)
-#define SCALE 8
-#define EDGE_FACTOR 16
+#define SCALE ${scale}
+#define N_NODES ${n_nodes}
+#define N_EDGES ${n_edges}
 
-#define N_NODES (1<<SCALE)
-#define N_EDGES (N_NODES*EDGE_FACTOR)
-
-// upper limit
-#define N_LEVELS 10
+// upper limit for diameter; constant for giant component (Leskovec et al., 2005)
+typedef int8_t level_t;
+#define MAX_LEVEL INT8_MAX
 
 // Larger than necessary for small graphs, but appropriate for large ones
 typedef uint64_t edge_index_t;
@@ -36,18 +33,16 @@ typedef struct node_t_struct {
   edge_index_t edge_end;
 } node_t;
 
-typedef int8_t level_t;
-#define MAX_LEVEL INT8_MAX
-
 ////////////////////////////////////////////////////////////////////////////////
 // Test harness interface code.
 
 struct bench_args_t {
   node_t nodes[N_NODES];
   edge_t edges[N_EDGES];
+  node_index_t queue[N_NODES];
   node_index_t starting_node;
   level_t level[N_NODES];
-  edge_index_t level_counts[N_LEVELS];
+  edge_index_t level_counts[MAX_LEVEL];
 };
 
-void bfs(node_t nodes[N_NODES], edge_t edges[N_EDGES], node_index_t starting_node, level_t level[N_NODES], edge_index_t level_counts[N_LEVELS]);
+void bfs(node_t *nodes, edge_t *edges, node_index_t *queue, node_index_t starting_node, level_t *level, edge_index_t *level_counts);
