@@ -21,8 +21,8 @@ before_script:
 
 script:
   - nosetests
-  - ./scons baseline
-  - ./scons metrics
+  - ./scons scale=scale baseline
+  - ./scons scale=scale metrics
 
 notifications:
   email:
