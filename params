@@ -3,7 +3,7 @@
     "n_epochs": 1,
     "n_inputs": 163,
     "input_layer_sz": 13,
-    "hidden_layer_sz": 13,
+    "hidden_layer_sz": 13
   },
   "bfs/queue": {
     "n_nodes": 256,
@@ -11,10 +11,10 @@
     "A": 57,
     "B": 19,
     "C": 19,
-    "D": 5,
+    "D": 5
   },
   "sort/radix": {
     "n_elements": 2048,
-    "radix": 4,
+    "radix": 4
   }
 }
