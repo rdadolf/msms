@@ -1,0 +1,93 @@
+# Scaling parameter classes:
+# A: problem size
+# B: decomposition
+# C: data-dependent
+# D: domain-specific
+
+# aes/aes
+A n_blocks
+A bitwidth
+
+# backprop/backprop
+A n_epochs
+A n_inputs
+A input_layer_sz
+D hidden_layer_sz
+
+# bfs/bulk
+A n_nodes
+A edge_factor
+C A
+C B
+C C
+C D
+
+# bfs/queue
+A n_nodes
+A edge_factor
+C A
+C B
+C C
+C D
+
+# fft/strided
+A n_elements
+
+# fft/transpose
+A n_elements
+B fft_sz
+
+# gemm/blocked
+A matrix_sz
+B block_sz
+
+# gemm/ncubed
+A matrix_sz
+
+# kmp/kmp
+A text_sz
+A pattern_sz
+C match_prob
+
+# md/grid
+A n_atoms
+B grid_sz
+D bbox_sz
+
+# md/knn
+A n_atoms
+D bbox_sz
+D n_neighbors
+
+# nw/nw
+A string_sz
+
+# sort/merge
+A n_elements
+
+# sort/radix
+A n_elements
+B radix
+
+# spmv/crs
+A vector_sz
+C n_nz
+
+# spmv/ellpack
+A vector_sz
+C n_nz
+C std_nz
+
+# stencil/stencil2d
+A matrix_sz
+B block_sz
+
+# stencil/stencil3d
+A matrix_sz
+B block_sz
+
+# viterbi/viterbi
+A n_obs
+C emit_skew
+C trans_skew
+D n_hidden

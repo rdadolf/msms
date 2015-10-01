@@ -5,12 +5,12 @@ int INPUT_SIZE = sizeof(struct bench_args_t);
 
 void run_benchmark( void *vargs ) {
   struct bench_args_t *args = (struct bench_args_t *)vargs;
-  ss_sort( args->a, args->b, args->bucket, args->sum );
+  ss_sort( args->a, args->b, args->counts );
 }
 
 /* Input format:
 %% Section 1
-TYPE[SIZE]: unsorted array
+sort_t[SIZE]: unsorted array
 */
 
 void input_to_data(int fd, void *vdata) {
@@ -22,19 +22,19 @@ void input_to_data(int fd, void *vdata) {
   p = readfile(fd);
 
   s = find_section_start(p,1);
-  STAC(parse_,TYPE,_array)(s, data->a, SIZE);
+  STAC(parse_,sort_t,_array)(s, data->a, SIZE);
 }
 
 void data_to_input(int fd, void *vdata) {
   struct bench_args_t *data = (struct bench_args_t *)vdata;
 
   write_section_header(fd);
-  STAC(write_,TYPE,_array)(fd, data->a, SIZE);
+  STAC(write_,sort_t,_array)(fd, data->a, SIZE);
 }
 
 /* Output format:
 %% Section 1
-TYPE[SIZE]: sorted array
+sort_t[SIZE]: sorted array
 */
 
 void output_to_data(int fd, void *vdata) {
@@ -46,14 +46,14 @@ void output_to_data(int fd, void *vdata) {
   p = readfile(fd);
 
   s = find_section_start(p,1);
-  STAC(parse_,TYPE,_array)(s, data->a, SIZE);
+  STAC(parse_,sort_t,_array)(s, data->${which_output_buffer}, SIZE);
 }
 
 void data_to_output(int fd, void *vdata) {
   struct bench_args_t *data = (struct bench_args_t *)vdata;
 
   write_section_header(fd);
-  STAC(write_,TYPE,_array)(fd, data->a, SIZE);
+  STAC(write_,sort_t,_array)(fd, data->${which_output_buffer}, SIZE);
 }
 
 int check_data( void *vdata, void *vref ) {
@@ -61,7 +61,7 @@ int check_data( void *vdata, void *vref ) {
   struct bench_args_t *ref = (struct bench_args_t *)vref;
   int has_errors = 0;
   int i;
-  TYPE data_sum, ref_sum;
+  sort_t data_sum, ref_sum;
 
   // Check sortedness and sum
   data_sum = data->a[0];

@@ -12,8 +12,8 @@ set part virtex7
 
 
 open_solution solution
-set_part $part
-create_clock -period $clock
+set_part $$part
+create_clock -period $$clock
 source ./inline_dir
 
 #config_rtl -reset all -reset_level low

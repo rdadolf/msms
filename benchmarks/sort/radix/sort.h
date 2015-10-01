@@ -1,37 +1,27 @@
-/*
-Implementation based on algorithm described in:
-A. Danalis, G. Marin, C. McCurdy, J. S. Meredith, P. C. Roth, K. Spafford, V. Tipparaju, and J. S. Vetter.
-The scalable heterogeneous computing (shoc) benchmark suite.
-In Proceedings of the 3rd Workshop on General-Purpose Computation on Graphics Processing Units, 2010
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "support.h"
 
-#define TYPE int32_t
-#define TYPE_MAX INT32_MAX
+// 
+#define sort_t ${sort_type} // sizeof(sort_t)*8 should be > RADIX_BITS
+#define BIT_MASK ${bit_mask}
+#define BITWIDTH ${bitwidth}
+#define count_t uint32_t // MAX(count_t) should be > SIZE
 
-#define SIZE 2048
-#define NUMOFBLOCKS 512
+#define SIZE (${n_elements})
+#define RADIX (${radix})
+#define RADIX_BITS (${radix_bits})
+#define RADIX_MASK (${radix_mask})
 
-#define ELEMENTSPERBLOCK 4
-#define RADIXSIZE 4
-#define BUCKETSIZE NUMOFBLOCKS*RADIXSIZE
-#define MASK 0x3
 
-#define SCAN_BLOCK 16
-#define SCAN_RADIX BUCKETSIZE/SCAN_BLOCK
-
-void ss_sort(int a[SIZE], int b[SIZE], int bucket[BUCKETSIZE], int sum[SCAN_RADIX]);
+void ss_sort(sort_t a[SIZE], sort_t b[SIZE], count_t counts[RADIX]);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Test harness interface code.
 
 struct bench_args_t {
-  int a[SIZE];
-  int b[SIZE];
-  int bucket[BUCKETSIZE];
-  int sum[SCAN_RADIX];
+  sort_t a[SIZE];
+  sort_t b[SIZE];
+  count_t counts[RADIX+1];
 };
