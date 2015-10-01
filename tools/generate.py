@@ -14,9 +14,8 @@ def scale(scalefile, parameters={}):
   scalefunc = mod.scale
   return scalefunc(**parameters)
 
-def scale_files(scalefile, paramfile, outfile):
-  parameters = load_dictionary(paramfile)
-  store_dictionary( scale(scalefile, parameters), outfile)
+def scale_files(scalefile, params, outfile):
+  store_dictionary( scale(scalefile, params), outfile) # FIXME: dict is wrong
 
 def store_dictionary(d, outfile):
   with open(outfile,'w') as outf:

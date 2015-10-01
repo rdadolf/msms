@@ -34,7 +34,11 @@ ms_names = [
   'stencil/stencil3d',
   'viterbi/viterbi',
 ]
-ms_names = ['bfs/queue'] # FIXME: remove; debug
+ms_names = [
+  'backprop/backprop',
+  'bfs/queue',
+  'sort/radix',
+]
 #ms_aliases = {kern: kern+'/'+alg for (kern,alg) in [kern_alg.split('/') for kern_alg in ms_names] if kern==alg}
 
 ### Utility ####################################################################
@@ -85,18 +89,29 @@ cli_vars.Add('verbose','Be more thorough about reporting build steps', False)
 cli_vars.Add('LLVM_ROOT', 'Set the path to LLVM', os.environ.get('LLVM_ROOT',''))
 cli_vars.Add('CXX', 'Select the C++ compiler', os.environ.get('CXX','c++'))
 cli_vars.Add('CC', 'Select the C compiler', os.environ.get('CC','cc'))
-cli_vars.Add('scale', 'JSON file containing scaling parameters', None)
-#cli_vars.Add(ListVariable('benchmark', 'Builds the only the specified benchmarks', default=ms_names, names=ms_names, map=ms_aliases))
+cli_vars.Add('params', 'JSON file containing scaling parameters')
+cli_vars.Add(ListVariable('benchmarks', 'Builds the only the specified benchmarks', default=ms_names, names=ms_names))
 #cli_vars.Add(BoolVariable('data', 'Generate input and reference files', 0))
 #cli_vars.Add(BoolVariable('metrics', 'Build and run performance metrics', 0))
 
 cli_vars.Update(E)
 
+# Convert parameter file into a parameter dictionary
+paramfile = E.get('params','')
+if os.path.isfile(paramfile):
+  E.Replace(params=tools.generate.load_dictionary(paramfile))
+  # FIXME: error check this file before continuing
+  # Format: { "kern/alg": { "var"=value, ... }, ... }
+else:
+  E.Replace(params={})
+
 ### Builders ###################################################################
 def Scale(target,source,env):
   (trans_dict,) = map(str,target)
-  (scalefile, paramfile) = map(str,source)
-  tools.generate.scale_files(scalefile, paramfile, trans_dict)
+  (scalefile,) = map(str,source)
+  kern_alg = str(env['kernel'])+'/'+str(env['algorithm'])
+  params = env['params'].get('params',{})
+  tools.generate.scale_files(scalefile, params, trans_dict)
   return 0
 Scale_Builder = Builder(action=Scale)
 
@@ -167,15 +182,13 @@ E.Depends('all',['report','metrics','run','data','baseline'])
 Default('baseline')
 
 ################################################################################
-kern_alg_list = [ka.split('/') for ka in ms_names]
-
-##### FIXME: something about finding/generating scale parameter file?
+kern_alg_list = [ka.split('/') for ka in E['benchmarks']]
 
 ##### Generate scaled MachSuite
 for (k,a) in kern_alg_list:
+  E_emit.Replace(kernel=k, algorithm=a)
   trans_dict = E_emit.Scale( [pjoin(emit_dir,k,a,'trans.dict')],
-                             [pjoin(template_dir,k,a,'scale.py'),
-                              E_emit['scale']] )
+                             [pjoin(template_dir,k,a,'scale.py')] )
   for f in [k+'.c', k+'.h', 'local_support.c', 'generate.c','hls.tcl']:
     E_emit.Emit( [pjoin(emit_dir,k,a,f)],
                  [trans_dict,
