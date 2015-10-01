@@ -4,13 +4,13 @@
 #include "../../common/support.h"
 
 // Fixed parameters
-#define input_dimension  13
+#define input_dimension   ${input_dimension}
 #define possible_outputs  3
-#define training_sets   163
-#define nodes_per_layer  64
+#define training_sets     ${training_sets}
+#define nodes_per_layer   ${nodes_per_layer}
 #define layers            2
 #define learning_rate  0.01
-#define epochs            1
+#define epochs            ${epochs}
 #define test_sets        15
 #define norm_param    0.005
 

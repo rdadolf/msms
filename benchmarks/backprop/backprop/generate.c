@@ -7,15 +7,20 @@
 #include <unistd.h>
 #include <assert.h>
 
-//#include "sol.h"
-//#include "train.h"
+#include "sol.h"
+#include "train.h"
 #include "backprop.h"
 
-int main( int argc, const char* argv[] ){
+int main( int argc, char **argv ) {
+    char *outfile;
     int i, j, fd;
-    
     struct bench_args_t data;
     struct prng_rand_t state;
+
+    if( argc>1 )
+        outfile = argv[1];
+    else
+        outfile = "input.data";
 
     prng_srand(1, &state);
     for( i = 0; i < input_dimension; i++){
@@ -38,13 +43,17 @@ int main( int argc, const char* argv[] ){
     }
     for( i = 0; i < training_sets; i++){
         for( j = 0; j < input_dimension; j++)
-            data.training_data[i*input_dimension + j] = (TYPE)training_data[i][j];
+            // FIXME: Replication is a poor substitute for a generated data set.
+            // Remove the modulo operators.
+            data.training_data[i*input_dimension + j] = (TYPE)training_data[i%163][j%13];
         for( j = 0; j < possible_outputs; j++)
+            // FIXME: Replication is a poor substitute for a generated data set.
+            // Remove the modulo operators.
             data.training_targets[i*possible_outputs + j] = (TYPE)0;
-        data.training_targets[i*possible_outputs + (training_targets[i] - 1)] = 1.0;
+        data.training_targets[i*possible_outputs + (training_targets[i%163] - 1)] = 1.0;
     }
 
-    fd = open("input.data", O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+    fd = open(outfile, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
     assert( fd>0 && "Couldn't open input data file");
 
     data_to_input(fd, (void *)(&data));

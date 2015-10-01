@@ -181,6 +181,18 @@ for (k,a) in kern_alg_list:
                  [trans_dict,
                   pjoin(template_dir,k,a,f)] )
     E.Depends('baseline', pjoin(emit_dir,k,a,'hls.tcl'))
+  # FIXME: backprop is glitched (has extra files)
+  # this is a terrible hack to get that working.
+  if k=='backprop':
+    E_emit.Emit( [pjoin(emit_dir,'backprop','backprop','sol.h')],
+                 [trans_dict,
+                  pjoin(template_dir,'backprop','backprop','sol.h')] )
+    E_emit.Emit( [pjoin(emit_dir,'backprop','backprop','train.h')],
+                 [trans_dict,
+                  pjoin(template_dir,'backprop','backprop','train.h')] )
+    E.Depends( [pjoin(emit_dir,'backprop','backprop','generate')],
+               [pjoin(emit_dir,'backprop','backprop','train.h'),
+                pjoin(emit_dir,'backprop','backprop','sol.h')] )
 for f in ['harness.c','support.c','support.h']:
   E_emit.Emit( [pjoin(emit_dir,'common',f)],
                [trans_dict,
